@@ -139,7 +139,7 @@ classdef PicoScopeRunBlock < matlab.System
         function data = unpackData(obj)
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels));
             for channelId = uint8(obj.Channels)
-                data(:, channelId+1) = get(obj.BufferPtr(channelId+1), 'value');
+                data(:, channelId+1) = obj.BufferPtr(channelId+1).Value;
             end
         end
     end
