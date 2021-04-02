@@ -25,6 +25,7 @@ classdef PicoScopeRunBlock < matlab.System
         BufferPtr
     end
     
+    
     methods (Access = public)
         function obj = PicoScopeRunBlock()
             PicoScope4000a.loadLibrary();
@@ -36,39 +37,40 @@ classdef PicoScopeRunBlock < matlab.System
             obj.Coupling = obj.DEFAULT_COUPLING;
             obj.ProbeRange = obj.DEFAULT_PROBE_RANGE;
             obj.SampleRate = obj.DEFAULT_SAMPLE_RATE;
-            obj.AnalogOffsetInV = obj.DEFAULT_ANALOG_OFSET_V;            
+            obj.AnalogOffsetInV = obj.DEFAULT_ANALOG_OFSET_V;
         end
         
         function delete(obj)
             status = PicoScope4000a.closeUnit(obj.Handle);
             assert(status == 0, 'Failure on closeUnit().')
             PicoScope4000a.unloadLibrary();
-        end        
+        end
     end
     
     methods (Access = protected)
         function setupImpl(obj)
+            obj.BufferPtr = repmat(libpointer, 1, numel(obj.Channel));
             obj.releaseAllChannels();
             obj.setupDesiredChannels();
             obj.allocateBuffer();
-        end                
+        end
         
         function data = stepImpl(obj)
             obj.acquireData();
             PicoScope4000a.waitUntilDataIsReady(obj.Handle)
             obj.fetchDataFromDevice();
-            data = get(obj.BufferPtr, 'value');
-        end                
+            data = obj.unpackData();
+        end
     end
     
     
     methods (Access = private)
         function releaseAllChannels(obj)
             enabled = false;
-            for channelIndex = double(PicoScope4000a.CHANNEL.A):double(PicoScope4000a.CHANNEL.H)
+            for channelId = uint8(PicoScope4000a.CHANNEL.A):uint8(PicoScope4000a.CHANNEL.H)
                 status = PicoScope4000a.setChannel(...
                     obj.Handle, ...
-                    channelIndex, ...
+                    channelId, ...
                     enabled, ...
                     obj.DEFAULT_COUPLING, ...
                     obj.DEFAULT_PROBE_RANGE, ...
@@ -80,27 +82,31 @@ classdef PicoScopeRunBlock < matlab.System
         
         function setupDesiredChannels(obj)
             enabled = true;
-            status = PicoScope4000a.setChannel(...
-                obj.Handle, ...
-                obj.Channel, ...
-                enabled, ...
-                obj.Coupling, ...
-                obj.ProbeRange, ...
-                obj.AnalogOffsetInV ...
-                );
-            assert(status == 0, 'Failure on setupDesiredChannels().')
+            for channelId = uint8(obj.Channel)
+                status = PicoScope4000a.setChannel(...
+                    obj.Handle, ...
+                    channelId, ...
+                    enabled, ...
+                    obj.Coupling, ...
+                    obj.ProbeRange, ...
+                    obj.AnalogOffsetInV ...
+                    );
+                assert(status == 0, 'Failure on setupDesiredChannels().')
+            end
         end
         
         function allocateBuffer(obj)
             bufferLth = obj.NumSamplesPerRun;
-            [status, obj.BufferPtr] = PicoScope4000a.setDataBuffer(...
-                obj.Handle, ...
-                obj.Channel, ...
-                bufferLth, ...
-                obj.DEFAULT_SEGMENT_INDEX, ...
-                obj.DEFAULT_RATIO_MODE ...
-                );
-            assert(status == 0, 'Failure on allocateBuffer().')
+            for channelId = uint8(obj.Channel)
+                [status, obj.BufferPtr(channelId+1)] = PicoScope4000a.setDataBuffer(...
+                    obj.Handle, ...
+                    channelId, ...
+                    bufferLth, ...
+                    obj.DEFAULT_SEGMENT_INDEX, ...
+                    obj.DEFAULT_RATIO_MODE ...
+                    );
+                assert(status == 0, 'Failure on allocateBuffer().')
+            end
         end
         
         function acquireData(obj)
@@ -128,6 +134,13 @@ classdef PicoScopeRunBlock < matlab.System
                 obj.DEFAULT_SEGMENT_INDEX ...
                 );
             assert(status == 0, 'Failure on fetchDataFromDevice().')
+        end
+        
+        function data = unpackData(obj)
+            data = zeros(obj.NumSamplesPerRun, numel(obj.Channel));
+            for channelId = uint8(obj.Channel)
+                data(:, channelId+1) = get(obj.BufferPtr(channelId+1), 'value');
+            end
         end
     end
 end

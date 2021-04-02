@@ -5,10 +5,17 @@ close all;
 clear;
 
 runBlock = PicoScopeRunBlock();
+runBlock.Channel = [...
+    PICO_CHANNEL.A, ...
+    PICO_CHANNEL.B ...
+    ];
 
 for blockIndex = 1:10
+    tic;
     data = runBlock();
-    plot(data(1:1e5))
+    toc;
+    
+    plot(data(1:1e5, :))
     drawnow();
 end
 
