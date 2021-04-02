@@ -1,3 +1,6 @@
+% Soeren Sofke, IBS
+% 2021-04-02
+
 classdef PicoScope4000a < coder.ExternalDependency %#codegen
     properties (Constant = true)
         CHANNEL = struct(...

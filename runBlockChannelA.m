@@ -1,8 +1,10 @@
+% Soeren Sofke, IBS
+% 2021-04-02
+
 close all;
 clear;
 
 %% Set parameters
-
 NUM_SAMPLES_PER_RUN = 40e6;
 
 CHANNEL = PicoScope4000a.CHANNEL.A;
