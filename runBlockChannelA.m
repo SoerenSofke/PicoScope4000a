@@ -5,9 +5,12 @@ close all;
 clear;
 
 runBlock = PicoScopeRunBlock();
+
+runBlock.SampleRate = PICO_SAMPLE_RATE.FS_10MHZ;
+runBlock.NumSamplesPerRun = 10e6;
 runBlock.Channels = [...
     PICO_CHANNEL.A, ...
-    PICO_CHANNEL.B ...
+    PICO_CHANNEL.B, ...
     ];
 
 for blockIndex = 1:10
