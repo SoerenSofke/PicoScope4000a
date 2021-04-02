@@ -13,7 +13,7 @@ classdef PicoScopeRunBlock < matlab.System
     
     properties (Access = public)
         NumSamplesPerRun
-        Channel
+        Channels
         Coupling
         ProbeRange
         SampleRate
@@ -33,7 +33,7 @@ classdef PicoScopeRunBlock < matlab.System
             assert(status == 0, 'Failure on openUnit().')
             
             obj.NumSamplesPerRun = obj.DEFAULT_NUM_SAMPLES_PER_RUN;
-            obj.Channel = obj.DEFAULT_CHANNEL;
+            obj.Channels = obj.DEFAULT_CHANNEL;
             obj.Coupling = obj.DEFAULT_COUPLING;
             obj.ProbeRange = obj.DEFAULT_PROBE_RANGE;
             obj.SampleRate = obj.DEFAULT_SAMPLE_RATE;
@@ -49,9 +49,9 @@ classdef PicoScopeRunBlock < matlab.System
     
     methods (Access = protected)
         function setupImpl(obj)
-            obj.BufferPtr = repmat(libpointer, 1, numel(obj.Channel));
-            obj.releaseAllChannels();
-            obj.setupDesiredChannels();
+            obj.BufferPtr = repmat(libpointer, 1, numel(obj.Channels));
+            obj.releaseAllChannelss();
+            obj.setupDesiredChannelss();
             obj.allocateBuffer();
         end
         
@@ -65,7 +65,7 @@ classdef PicoScopeRunBlock < matlab.System
     
     
     methods (Access = private)
-        function releaseAllChannels(obj)
+        function releaseAllChannelss(obj)
             enabled = false;
             for channelId = uint8(PicoScope4000a.CHANNEL.A):uint8(PicoScope4000a.CHANNEL.H)
                 status = PicoScope4000a.setChannel(...
@@ -76,13 +76,13 @@ classdef PicoScopeRunBlock < matlab.System
                     obj.DEFAULT_PROBE_RANGE, ...
                     obj.DEFAULT_ANALOG_OFSET_V ...
                     );
-                assert(status == 0, 'Failure on resetAllChannels().')
+                assert(status == 0, 'Failure on resetAllChannelss().')
             end
         end
         
-        function setupDesiredChannels(obj)
+        function setupDesiredChannelss(obj)
             enabled = true;
-            for channelId = uint8(obj.Channel)
+            for channelId = uint8(obj.Channels)
                 status = PicoScope4000a.setChannel(...
                     obj.Handle, ...
                     channelId, ...
@@ -91,13 +91,13 @@ classdef PicoScopeRunBlock < matlab.System
                     obj.ProbeRange, ...
                     obj.AnalogOffsetInV ...
                     );
-                assert(status == 0, 'Failure on setupDesiredChannels().')
+                assert(status == 0, 'Failure on setupDesiredChannelss().')
             end
         end
         
         function allocateBuffer(obj)
             bufferLth = obj.NumSamplesPerRun;
-            for channelId = uint8(obj.Channel)
+            for channelId = uint8(obj.Channels)
                 [status, obj.BufferPtr(channelId+1)] = PicoScope4000a.setDataBuffer(...
                     obj.Handle, ...
                     channelId, ...
@@ -137,8 +137,8 @@ classdef PicoScopeRunBlock < matlab.System
         end
         
         function data = unpackData(obj)
-            data = zeros(obj.NumSamplesPerRun, numel(obj.Channel));
-            for channelId = uint8(obj.Channel)
+            data = zeros(obj.NumSamplesPerRun, numel(obj.Channels));
+            for channelId = uint8(obj.Channels)
                 data(:, channelId+1) = get(obj.BufferPtr(channelId+1), 'value');
             end
         end
