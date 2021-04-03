@@ -4,8 +4,10 @@
 close all;
 clear;
 
+%%% Instantiate
 runBlock = PicoScopeRunBlock();
 
+%%% Set parameters
 runBlock.SampleRate = PICO_SAMPLE_RATE.FS_10MHZ;
 runBlock.NumSamplesPerRun = 10e6;
 runBlock.Channels = [...
@@ -13,6 +15,10 @@ runBlock.Channels = [...
     PICO_CHANNEL.B, ...
     ];
 
+%%% Initialize
+runBlock.setup();
+
+%%% Operate
 for blockIndex = 1:10
     tic;
     data = runBlock();
@@ -22,4 +28,6 @@ for blockIndex = 1:10
     drawnow();
 end
 
-delete(runBlock);
+%%% Teardown
+runBlock.release();
+delete(runBlock)

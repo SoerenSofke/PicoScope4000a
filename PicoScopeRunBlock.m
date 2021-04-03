@@ -28,10 +28,6 @@ classdef PicoScopeRunBlock < matlab.System
     
     methods (Access = public)
         function obj = PicoScopeRunBlock()
-            PicoScope4000a.loadLibrary();
-            [status, obj.Handle] = PicoScope4000a.openUnit();
-            assert(status == 0, 'Failure on openUnit().')
-            
             obj.NumSamplesPerRun = obj.DEFAULT_NUM_SAMPLES_PER_RUN;
             obj.Channels = obj.DEFAULT_CHANNEL;
             obj.Coupling = obj.DEFAULT_COUPLING;
@@ -39,20 +35,17 @@ classdef PicoScopeRunBlock < matlab.System
             obj.SampleRate = obj.DEFAULT_SAMPLE_RATE;
             obj.AnalogOffsetInV = obj.DEFAULT_ANALOG_OFSET_V;
         end
-        
-        function delete(obj)
-            status = PicoScope4000a.closeUnit(obj.Handle);
-            assert(status == 0, 'Failure on closeUnit().')
-            PicoScope4000a.unloadLibrary();
-        end
     end
     
     methods (Access = protected)
         function setupImpl(obj)
             obj.BufferPtr = repmat(libpointer, 1, numel(obj.Channels));
+            
+            obj.openUnit()
             obj.releaseAllChannelss();
             obj.setupDesiredChannelss();
             obj.allocateBuffer();
+            obj.stepImpl();
         end
         
         function data = stepImpl(obj)
@@ -61,10 +54,23 @@ classdef PicoScopeRunBlock < matlab.System
             obj.fetchDataFromDevice();
             data = obj.unpackData();
         end
+        
+        function releaseImpl(obj)
+            status = PicoScope4000a.closeUnit(obj.Handle);
+            assert(status == 0, 'Failure on closeUnit().')
+            PicoScope4000a.unloadLibrary();
+        end
     end
     
     
     methods (Access = private)
+        function openUnit(obj)
+            PicoScope4000a.loadLibrary();
+            
+            [status, obj.Handle] = PicoScope4000a.openUnit();
+            assert(status == 0, 'Failure on openUnit().')
+        end
+        
         function releaseAllChannelss(obj)
             enabled = false;
             for channelId = uint8(PicoScope4000a.CHANNEL.A):uint8(PicoScope4000a.CHANNEL.H)
