@@ -1,4 +1,4 @@
-# PicoScope4000a
+# 🌈 PicoScope4000a 🦄
 
 MATLAB Interface to PicoScope 4000A Series Oscilloscopes, tested with PicoScope 4824 in _block mode_.
 
