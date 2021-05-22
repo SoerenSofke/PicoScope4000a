@@ -28,6 +28,34 @@ classdef PicoScope4000a < coder.ExternalDependency %#codegen
             status = calllib('ps4000a', 'ps4000aSetDataBuffer', handle, double(CHANNEL), bufferPtr, bufferLth, segmentIndex, double(RATIO_MODE));
         end
         
+        function [status] = runStreaming(...
+                handle, ...
+                sampleInterval, ...
+                SAMPLE_INTERVAL_TIME_UNITS, ...
+                maxPreTriggerSamples, ...
+                maxPostTriggerSamples, ...
+                autoStop, ...
+                downSampleRatio, ...
+                RATIO_MODE, ...
+                overviewBufferSize ...
+                )
+            sampleIntervalPointer = libpointer('uint32Ptr', sampleInterval);
+            
+            status = calllib(...
+                'ps4000a', ...                          % name of dll to call
+                'ps4000aRunStreaming', ...              % name of function to call
+                handle, ...                             % identifier for the scope device
+                sampleIntervalPointer, ...              % on entry, the requested time interval between data points on entry; on exit, the actual time interval assigned
+                double(SAMPLE_INTERVAL_TIME_UNITS), ... % the unit of time that the sampleInterval is set to
+                maxPreTriggerSamples, ...               % the maximum number of raw samples before a trigger event for each enabled channel
+                maxPostTriggerSamples, ...              % the maximum number of raw samples after a trigger event for each enabled channel
+                autoStop, ...                           % a flag to specify if the streaming should stop when all of maxPreTriggerSamples + maxPostTriggerSamples have been taken
+                downSampleRatio, ...                    % the number of raw values to each downsampled value
+                double(RATIO_MODE), ...                 % the type of data reduction to use.
+                overviewBufferSize ...                  % the size of the overview buffers (the buffers passed by the application to the driver). The size must be less than or equal to the bufferLth value passed to ps4000aSetDataBuffer().
+                );
+        end
+        
         function [status, noOfSamples, overflow] = getValues(handle, startIndex, noOfSamples, downSampleRatio, RATIO_MODE, segmentIndex)
             noOfSamplesPrt = libpointer('uint32Ptr', noOfSamples);
             overflowPtr = libpointer('int16Ptr', 0);
@@ -45,11 +73,25 @@ classdef PicoScope4000a < coder.ExternalDependency %#codegen
         %% Advanced function defined in _ps4000aWrap.h_
         function [status] = runBlock(handle, preTriggerSamples, postTriggerSamples, SAMPLE_RATE, segmentIndex)
             status = calllib('ps4000aWrap', 'RunBlock', handle, preTriggerSamples, postTriggerSamples, double(SAMPLE_RATE), segmentIndex);
-        end
+        end                
         
         function [isReady] = isReady(handle)
             isReady = calllib('ps4000aWrap', 'IsReady', handle);
         end
+        
+        function [status] = setChannelCount(handle, channelCount)
+            status = calllib('ps4000aWrap', 'setChannelCount', handle, channelCount);
+        end
+        
+        function [status] = setEnabledChannels(handle, enabledChannels)
+            status = calllib('ps4000aWrap', 'setEnabledChannels', handle, enabledChannels);            
+        end
+        
+        function [status, appBufferPointer] = setAppAndDriverBuffers(handle, CHANNEL, driverBufferPointer, bufferLength)        
+            appBufferPointer = libpointer('int16Ptr', zeros(bufferLength, 1));            
+            status = calllib('ps4000aWrap', 'setAppAndDriverBuffers', handle, double(CHANNEL), appBufferPointer, driverBufferPointer, bufferLength);
+        end
+        
         
         %% Helper functions
         function loadLibrary()
