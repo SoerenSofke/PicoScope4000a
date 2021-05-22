@@ -92,6 +92,15 @@ classdef PicoScope4000a < coder.ExternalDependency %#codegen
             status = calllib('ps4000aWrap', 'setAppAndDriverBuffers', handle, double(CHANNEL), appBufferPointer, driverBufferPointer, bufferLength);
         end
         
+        function [status] = getStreamingLatestValues(handle)
+            status = calllib('ps4000aWrap', 'GetStreamingLatestValues', handle);
+        end
+        
+        function [numberOfSamplesCollected, startIndex] = availableData(handle)                        
+            startIndexPointer = libpointer('uint32Ptr', 0);
+            numberOfSamplesCollected = calllib('ps4000aWrap', 'AvailableData', handle, startIndexPointer);
+            startIndex = startIndexPointer.Value;
+        end
         
         %% Helper functions
         function loadLibrary()

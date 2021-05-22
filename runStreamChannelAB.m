@@ -7,7 +7,20 @@ runStream = PicoScopeRunStream();
 cleanupRunBlockBlock = onCleanup(@() tearDown(runStream));
  
 %%% Initialize
+hFig = figure();
 runStream.setup();
+
+while ishandle(hFig)
+    data = runStream();
+    
+    numSamples = length(data);
+    
+    if numSamples > 100
+        plot(gca(), data(1:100))
+        drawnow();
+    end
+end
+
 end
 
 %%% Teardown
@@ -17,6 +30,3 @@ delete(runStream);
 
 disp('Done!')
 end
-
-
-

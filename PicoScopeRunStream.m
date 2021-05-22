@@ -5,7 +5,7 @@ classdef PicoScopeRunStream < matlab.System
         DEFAULT_PROBE_RANGE = PicoScope4000a.PROBE_RANGE.DIFFERENTIAL_5V;
         DEFAULT_ANALOG_OFSET_V = 0;
         DEFAULT_DOWN_SAMPLE_RATIO = 1;
-        DEFAULT_RATIO_MODE = PicoScope4000a.RATIO_MODE.NONE
+        DEFAULT_RATIO_MODE = PicoScope4000a.RATIO_MODE.NONE;
         DEFAULT_SEGMENT_INDEX = 0;
         DEFAULT_MAX_CHANNEL = 8;
         DEFAULT_NUM_SAMPLES_PER_RUN = 40e6;
@@ -42,6 +42,13 @@ classdef PicoScopeRunStream < matlab.System
             obj.setupDesiredChannelss();
             obj.allocateBuffer();
             obj.startStreaming();
+        end
+        
+        function data = stepImpl(obj)
+%             PicoScope4000a.isReady(obj.Handle);            
+            status = PicoScope4000a.getStreamingLatestValues(obj.Handle);            
+            [numberOfSamplesCollected, startIndex] = PicoScope4000a.availableData(obj.Handle);
+            data = obj.AppBufferPointer.Value(startIndex+1:startIndex+numberOfSamplesCollected);
         end
         
         function releaseImpl(obj)
