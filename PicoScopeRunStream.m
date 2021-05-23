@@ -65,11 +65,13 @@ classdef PicoScopeRunStream < matlab.System
                 end
                 
                 %% Aggregate data from application buffer
-                [numberOfSamplesCollected, startIndex] = PicoScope4000a.availableData(obj.Handle);
-                data(startIndex+1:startIndex+numberOfSamplesCollected) = obj.AppBufferPointer.Value(startIndex+1:startIndex+numberOfSamplesCollected);
+                [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
                 
-                lastSampleIndex = numberOfSamplesCollected + startIndex;
-                if lastSampleIndex >= obj.NumSamplesPerRun
+                startIndex = startIndexZeroBased + 1;
+                endIdex = numberOfSamplesCollected + startIndexZeroBased;                
+                data(startIndex:endIdex) = obj.AppBufferPointer.Value(startIndex:endIdex);                
+                
+                if endIdex >= obj.NumSamplesPerRun
                     break
                 end
             end

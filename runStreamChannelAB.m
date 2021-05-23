@@ -11,10 +11,11 @@ hFig = figure();
 runStream.setup();
 
 while ishandle(hFig)
-    data = runStream();
-    
+    tic;
+    data = runStream();    
     plot(gca(), data(1:100))
     drawnow();
+    toc
 end
 end
 
