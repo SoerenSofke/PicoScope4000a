@@ -159,8 +159,6 @@ classdef PicoScopeRunStream < matlab.System
         end
         
         function startStreaming(obj)
-            %%% TODO: make a property out of it
-            
             sampleInterval_ns = floor(((1e15/obj.SampleRate)+0.5));
             maxPreTriggerSamples = 0;
             maxPostTriggerSamples = obj.NumSamplesPerRun;
