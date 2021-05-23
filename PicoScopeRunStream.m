@@ -8,7 +8,8 @@ classdef PicoScopeRunStream < matlab.System
         DEFAULT_RATIO_MODE = PicoScope4000a.RATIO_MODE.NONE;
         DEFAULT_SEGMENT_INDEX = 0;
         DEFAULT_MAX_CHANNEL = 8;
-        DEFAULT_NUM_SAMPLES_PER_RUN = 40e6;
+        DEFAULT_SAMPLE_RATE_HZ = 20e6;
+        DEFAULT_NUM_SAMPLES_PER_RUN = 20e6;
     end
     
     properties (Access = public)
@@ -17,6 +18,7 @@ classdef PicoScopeRunStream < matlab.System
         Coupling
         ProbeRange
         AnalogOffsetInV
+        SampleRate
     end
     
     properties (Access = public, Hidden)
@@ -32,6 +34,7 @@ classdef PicoScopeRunStream < matlab.System
             obj.Coupling = obj.DEFAULT_COUPLING;
             obj.ProbeRange = obj.DEFAULT_PROBE_RANGE;
             obj.AnalogOffsetInV = obj.DEFAULT_ANALOG_OFSET_V;
+            obj.SampleRate = obj.DEFAULT_SAMPLE_RATE_HZ;
         end
     end
     
@@ -45,10 +48,31 @@ classdef PicoScopeRunStream < matlab.System
         end
         
         function data = stepImpl(obj)
-%             PicoScope4000a.isReady(obj.Handle);            
-            status = PicoScope4000a.getStreamingLatestValues(obj.Handle);            
-            [numberOfSamplesCollected, startIndex] = PicoScope4000a.availableData(obj.Handle);
-            data = obj.AppBufferPointer.Value(startIndex+1:startIndex+numberOfSamplesCollected);
+            data = zeros(1, obj.NumSamplesPerRun, 'int16');
+            
+            while true
+                %% retrieve data from driverBuffer to application buffer
+                while true
+                    isReady = PicoScope4000a.isReady(obj.Handle);
+                    status = PicoScope4000a.getStreamingLatestValues(obj.Handle);
+                    dateTime = datetime('now');
+                    
+                    if status == 0 && isReady == true
+                        break
+                    else
+                        warning('%s, Ready: %d, PICO_STATUS: %d', dateTime, isReady, status);
+                    end
+                end
+                
+                %% Aggregate data from application buffer
+                [numberOfSamplesCollected, startIndex] = PicoScope4000a.availableData(obj.Handle);
+                data(startIndex+1:startIndex+numberOfSamplesCollected) = obj.AppBufferPointer.Value(startIndex+1:startIndex+numberOfSamplesCollected);
+                
+                lastSampleIndex = numberOfSamplesCollected + startIndex;
+                if lastSampleIndex >= obj.NumSamplesPerRun
+                    break
+                end
+            end
         end
         
         function releaseImpl(obj)
@@ -136,16 +160,16 @@ classdef PicoScopeRunStream < matlab.System
         
         function startStreaming(obj)
             %%% TODO: make a property out of it
-            SAMPLE_FREQUENCY_HZ = 20e6;
-            sampleInterval_ns = floor(((1e9/SAMPLE_FREQUENCY_HZ)+0.5));
+            
+            sampleInterval_ns = floor(((1e15/obj.SampleRate)+0.5));
             maxPreTriggerSamples = 0;
-            maxPostTriggerSamples = obj.NumSamplesPerRun;            
+            maxPostTriggerSamples = obj.NumSamplesPerRun;
             autoStop = false;
             
             status = PicoScope4000a.runStreaming(...
                 obj.Handle, ...
                 sampleInterval_ns, ...
-                PICO_TIME_UNITS.PS4000A_NS, ...
+                PICO_TIME_UNITS.PS4000A_FS, ...
                 maxPreTriggerSamples, ...
                 maxPostTriggerSamples, ...
                 autoStop, ...

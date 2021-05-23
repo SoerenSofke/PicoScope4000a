@@ -5,7 +5,7 @@ function runStreamChannelAB()
 %%% Instantiate
 runStream = PicoScopeRunStream();
 cleanupRunBlockBlock = onCleanup(@() tearDown(runStream));
- 
+
 %%% Initialize
 hFig = figure();
 runStream.setup();
@@ -13,14 +13,9 @@ runStream.setup();
 while ishandle(hFig)
     data = runStream();
     
-    numSamples = length(data);
-    
-    if numSamples > 100
-        plot(gca(), data(1:100))
-        drawnow();
-    end
+    plot(gca(), data(1:100))
+    drawnow();
 end
-
 end
 
 %%% Teardown
