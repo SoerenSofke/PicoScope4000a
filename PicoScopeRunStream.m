@@ -51,7 +51,7 @@ classdef PicoScopeRunStream < matlab.System
             data = zeros(1, obj.NumSamplesPerRun, 'int16');
             
             while true
-                %% retrieve data from driverBuffer to application buffer
+                %% retrieve data from driverBuffer
                 while true
                     isReady = PicoScope4000a.isReady(obj.Handle);
                     status = PicoScope4000a.getStreamingLatestValues(obj.Handle);
