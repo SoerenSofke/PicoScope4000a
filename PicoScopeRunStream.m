@@ -51,10 +51,10 @@ classdef PicoScopeRunStream < matlab.System
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels), 'int16');
             
             while true
-                obj.fetchDataFromDevice();                                
-                [data, endIndex] = obj.aggregateDataFromAppBuffer(data);
+                obj.fetchDataFromDeviceBuffer();                                
+                [data, isDone] = obj.aggregateDataFromAppBuffer(data);
 
-                if endIndex == obj.NumSamplesPerRun
+                if isDone
                     break
                 end
             end
@@ -164,7 +164,7 @@ classdef PicoScopeRunStream < matlab.System
             assert(status == 0, 'Failure on runStreaming() with PICO_STATUS: %d.', status)
         end
         
-        function fetchDataFromDevice(obj)           
+        function fetchDataFromDeviceBuffer(obj)           
                 while true
                     status = PicoScope4000a.getStreamingLatestValues(obj.Handle);                    
                     
@@ -177,14 +177,20 @@ classdef PicoScopeRunStream < matlab.System
                 end  
         end
         
-        function [data, endIndex] = aggregateDataFromAppBuffer(obj, data)
+        function [data, isDone] = aggregateDataFromAppBuffer(obj, data)
             [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
             
             startIndex = startIndexZeroBased + 1;
-            endIndex = numberOfSamplesCollected + startIndexZeroBased;
+            endIndex = startIndexZeroBased + numberOfSamplesCollected;
             
             for channelId = uint8(obj.Channels)
                 data(startIndex:endIndex, channelId+1) = obj.AppBufferPointer(channelId+1).Value(startIndex:endIndex);
+            end
+            
+            if endIndex == obj.NumSamplesPerRun
+                isDone = true;
+            else
+                isDone = false;
             end
         end
         
