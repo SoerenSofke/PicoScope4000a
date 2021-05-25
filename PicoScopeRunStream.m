@@ -51,9 +51,9 @@ classdef PicoScopeRunStream < matlab.System
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels), 'int16');
             
             while true
-                obj.fetchDataFromDeviceBuffer();                                
+                obj.fetchDataFromDeviceBuffer();
                 [data, isDone] = obj.aggregateDataFromAppBuffer(data);
-
+                
                 if isDone
                     break
                 end
@@ -164,17 +164,17 @@ classdef PicoScopeRunStream < matlab.System
             assert(status == 0, 'Failure on runStreaming() with PICO_STATUS: %d.', status)
         end
         
-        function fetchDataFromDeviceBuffer(obj)           
-                while true
-                    status = PicoScope4000a.getStreamingLatestValues(obj.Handle);                    
-                    
-                    if status == 0
-                        break
-                    else
-                        dateTime = datetime('now');
-                        warning('%s -- PICO_STATUS: %d', dateTime, status);
-                    end
-                end  
+        function fetchDataFromDeviceBuffer(obj)
+            while true
+                status = PicoScope4000a.getStreamingLatestValues(obj.Handle);
+                
+                if status == 0
+                    break
+                else
+                    dateTime = datetime('now');
+                    warning('%s -- PICO_STATUS: %d', dateTime, status);
+                end
+            end
         end
         
         function [data, isDone] = aggregateDataFromAppBuffer(obj, data)
