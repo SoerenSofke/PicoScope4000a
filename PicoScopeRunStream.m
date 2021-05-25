@@ -48,30 +48,31 @@ classdef PicoScopeRunStream < matlab.System
         end
         
         function data = stepImpl(obj)
-            data = zeros(1, obj.NumSamplesPerRun, 'int16');
+            veryFirstSampleIndex = inf;
+            data = zeros(size(obj.AppBufferPointer.Value), 'like', obj.AppBufferPointer.Value);
             
             while true
                 %% retrieve data from driverBuffer
                 while true
-                    isReady = PicoScope4000a.isReady(obj.Handle);
-                    status = PicoScope4000a.getStreamingLatestValues(obj.Handle);
-                    dateTime = datetime('now');
+                    status = PicoScope4000a.getStreamingLatestValues(obj.Handle);                    
                     
-                    if status == 0 && isReady == true
+                    if status == 0
                         break
                     else
-                        warning('%s, Ready: %d, PICO_STATUS: %d', dateTime, isReady, status);
+                        dateTime = datetime('now');
+                        warning('%s -- PICO_STATUS: %d', dateTime, status);
                     end
-                end
+                end                
                 
                 %% Aggregate data from application buffer
                 [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
-                
+                                
                 startIndex = startIndexZeroBased + 1;
                 endIdex = numberOfSamplesCollected + startIndexZeroBased;                
                 data(startIndex:endIdex) = obj.AppBufferPointer.Value(startIndex:endIdex);                
                 
-                if endIdex >= obj.NumSamplesPerRun
+                veryFirstSampleIndex = min(veryFirstSampleIndex, startIndex);
+                if endIdex == obj.NumSamplesPerRun && veryFirstSampleIndex == 1
                     break
                 end
             end
