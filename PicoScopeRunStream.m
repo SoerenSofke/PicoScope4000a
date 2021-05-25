@@ -48,15 +48,13 @@ classdef PicoScopeRunStream < matlab.System
         end
         
         function data = stepImpl(obj)
-            veryFirstSampleIndex = inf;
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels), 'int16');
             
             while true
                 obj.fetchDataFromDevice();                                
-                [data, startIndex, endIndex] = obj.aggregateDataFromAppBuffer(data);
+                [data, endIndex] = obj.aggregateDataFromAppBuffer(data);
 
-                veryFirstSampleIndex = min(veryFirstSampleIndex, startIndex);
-                if endIndex == obj.NumSamplesPerRun && veryFirstSampleIndex == 1
+                if endIndex == obj.NumSamplesPerRun
                     break
                 end
             end
@@ -179,14 +177,14 @@ classdef PicoScopeRunStream < matlab.System
                 end  
         end
         
-        function [data, startIndex, endIndex] = aggregateDataFromAppBuffer(obj, data)
+        function [data, endIndex] = aggregateDataFromAppBuffer(obj, data)
             [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
             
             startIndex = startIndexZeroBased + 1;
             endIndex = numberOfSamplesCollected + startIndexZeroBased;
             
             for channelId = uint8(obj.Channels)
-                data(:, channelId+1) = obj.AppBufferPointer(channelId+1).Value;
+                data(startIndex:endIndex, channelId+1) = obj.AppBufferPointer(channelId+1).Value(startIndex:endIndex);
             end
         end
         
