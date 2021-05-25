@@ -49,27 +49,21 @@ classdef PicoScopeRunStream < matlab.System
         
         function data = stepImpl(obj)
             veryFirstSampleIndex = inf;
-            data = zeros(size(obj.AppBufferPointer.Value), 'like', obj.AppBufferPointer.Value);
+            data = zeros(obj.NumSamplesPerRun, numel(obj.Channels), 'int16');
             
             while true
-                %% retrieve data from driverBuffer
-                while true
-                    status = PicoScope4000a.getStreamingLatestValues(obj.Handle);                    
-                    
-                    if status == 0
-                        break
-                    else
-                        dateTime = datetime('now');
-                        warning('%s -- PICO_STATUS: %d', dateTime, status);
-                    end
-                end                
+                obj.fetchDataFromDevice
                 
                 %% Aggregate data from application buffer
                 [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
                                 
                 startIndex = startIndexZeroBased + 1;
-                endIdex = numberOfSamplesCollected + startIndexZeroBased;                
-                data(startIndex:endIdex) = obj.AppBufferPointer.Value(startIndex:endIdex);                
+                endIdex = numberOfSamplesCollected + startIndexZeroBased; 
+                
+                for channelId = uint8(obj.Channels)
+                    data(:, channelId+1) = obj.AppBufferPointer(channelId+1).Value;
+                end
+                
                 
                 veryFirstSampleIndex = min(veryFirstSampleIndex, startIndex);
                 if endIdex == obj.NumSamplesPerRun && veryFirstSampleIndex == 1
@@ -180,6 +174,19 @@ classdef PicoScopeRunStream < matlab.System
                 );
             
             assert(status == 0, 'Failure on runStreaming() with PICO_STATUS: %d.', status)
+        end
+        
+        function fetchDataFromDevice(obj)           
+                while true
+                    status = PicoScope4000a.getStreamingLatestValues(obj.Handle);                    
+                    
+                    if status == 0
+                        break
+                    else
+                        dateTime = datetime('now');
+                        warning('%s -- PICO_STATUS: %d', dateTime, status);
+                    end
+                end  
         end
         
     end

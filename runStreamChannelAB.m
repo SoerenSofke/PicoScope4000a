@@ -6,6 +6,12 @@ function runStreamChannelAB()
 runStream = PicoScopeRunStream();
 cleanupRunBlockBlock = onCleanup(@() tearDown(runStream));
 
+%%% Set parameters
+runStream.Channels = [...
+    PICO_CHANNEL.A, ...
+    PICO_CHANNEL.B, ...
+    ];
+
 %%% Initialize
 hFig = figure();
 runStream.setup();
@@ -13,7 +19,7 @@ runStream.setup();
 while ishandle(hFig)
     tic;
     data = runStream();    
-    plot(gca(), data(1:100))
+    plot(gca(), data(1:100, :))
     drawnow();
     toc
 end
