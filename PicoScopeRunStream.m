@@ -52,7 +52,7 @@ classdef PicoScopeRunStream < matlab.System
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels), 'int16');
             
             while true
-                obj.fetchDataFromDevice
+                obj.fetchDataFromDevice();
                 
                 %% Aggregate data from application buffer
                 [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
