@@ -23,7 +23,7 @@ classdef PicoScopeRunStream < matlab.System
     
     properties (Access = public, Hidden)
         Handle
-        BufferPointer
+        DeviceBufferPointer
         AppBufferPointer
     end
     
@@ -52,21 +52,11 @@ classdef PicoScopeRunStream < matlab.System
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels), 'int16');
             
             while true
-                obj.fetchDataFromDevice();
-                
-                %% Aggregate data from application buffer
-                [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
-                                
-                startIndex = startIndexZeroBased + 1;
-                endIdex = numberOfSamplesCollected + startIndexZeroBased; 
-                
-                for channelId = uint8(obj.Channels)
-                    data(:, channelId+1) = obj.AppBufferPointer(channelId+1).Value;
-                end
-                
-                
+                obj.fetchDataFromDevice();                                
+                [data, startIndex, endIndex] = obj.aggregateDataFromAppBuffer(data);
+
                 veryFirstSampleIndex = min(veryFirstSampleIndex, startIndex);
-                if endIdex == obj.NumSamplesPerRun && veryFirstSampleIndex == 1
+                if endIndex == obj.NumSamplesPerRun && veryFirstSampleIndex == 1
                     break
                 end
             end
@@ -131,12 +121,12 @@ classdef PicoScopeRunStream < matlab.System
         end
         
         function allocateBuffer(obj)
-            obj.BufferPointer = repmat(libpointer, 1, numel(obj.Channels));
+            obj.DeviceBufferPointer = repmat(libpointer, 1, numel(obj.Channels));
             obj.AppBufferPointer = repmat(libpointer, 1, numel(obj.Channels));
             
             bufferLength = obj.NumSamplesPerRun;
             for channelId = uint8(obj.Channels)
-                [status, obj.BufferPointer(channelId+1)] = PicoScope4000a.setDataBuffer(...
+                [status, obj.DeviceBufferPointer(channelId+1)] = PicoScope4000a.setDataBuffer(...
                     obj.Handle, ...
                     channelId, ...
                     bufferLength, ...
@@ -148,7 +138,7 @@ classdef PicoScopeRunStream < matlab.System
                 [status, obj.AppBufferPointer(channelId+1)] = PicoScope4000a.setAppAndDriverBuffers(...
                     obj.Handle, ...
                     channelId, ...
-                    obj.BufferPointer(channelId+1), ...
+                    obj.DeviceBufferPointer(channelId+1), ...
                     bufferLength ...
                     );
                 assert(status == 0, 'Failure on setAppAndDriverBuffers() with PICO_STATUS: %d.', status)
@@ -187,6 +177,17 @@ classdef PicoScopeRunStream < matlab.System
                         warning('%s -- PICO_STATUS: %d', dateTime, status);
                     end
                 end  
+        end
+        
+        function [data, startIndex, endIndex] = aggregateDataFromAppBuffer(obj, data)
+            [numberOfSamplesCollected, startIndexZeroBased] = PicoScope4000a.availableData(obj.Handle);
+            
+            startIndex = startIndexZeroBased + 1;
+            endIndex = numberOfSamplesCollected + startIndexZeroBased;
+            
+            for channelId = uint8(obj.Channels)
+                data(:, channelId+1) = obj.AppBufferPointer(channelId+1).Value;
+            end
         end
         
     end
