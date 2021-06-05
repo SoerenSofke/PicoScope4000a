@@ -22,7 +22,7 @@ classdef PicoScopeRunBlock < matlab.System
     
     properties (Access = public, Hidden)
         Handle
-        BufferPtr
+        BufferPointer
     end
     
     
@@ -38,9 +38,7 @@ classdef PicoScopeRunBlock < matlab.System
     end
     
     methods (Access = protected)
-        function setupImpl(obj)
-            obj.BufferPtr = repmat(libpointer, 1, numel(obj.Channels));
-            
+        function setupImpl(obj)                        
             obj.openUnit()
             obj.releaseAllChannelss();
             obj.setupDesiredChannelss();
@@ -57,7 +55,7 @@ classdef PicoScopeRunBlock < matlab.System
         
         function releaseImpl(obj)
             status = PicoScope4000a.closeUnit(obj.Handle);
-            assert(status == 0, 'Failure on closeUnit().')
+            assert(status == 0, 'Failure on closeUnit() with PICO_STATUS: %d.', status)
             PicoScope4000a.unloadLibrary();
         end
     end
@@ -68,7 +66,7 @@ classdef PicoScopeRunBlock < matlab.System
             PicoScope4000a.loadLibrary();
             
             [status, obj.Handle] = PicoScope4000a.openUnit();
-            assert(status == 0, 'Failure on openUnit().')
+            assert(status == 0, 'Failure on openUnit() with PICO_STATUS: %d.', status)
         end
         
         function releaseAllChannelss(obj)
@@ -82,7 +80,7 @@ classdef PicoScopeRunBlock < matlab.System
                     obj.DEFAULT_PROBE_RANGE, ...
                     obj.DEFAULT_ANALOG_OFSET_V ...
                     );
-                assert(status == 0, 'Failure on resetAllChannelss().')
+                assert(status == 0, 'Failure on resetAllChannelss() with PICO_STATUS: %d.', status)
             end
         end
         
@@ -97,21 +95,23 @@ classdef PicoScopeRunBlock < matlab.System
                     obj.ProbeRange, ...
                     obj.AnalogOffsetInV ...
                     );
-                assert(status == 0, 'Failure on setupDesiredChannelss().')
+                assert(status == 0, 'Failure on setupDesiredChannelss() with PICO_STATUS: %d.', status)
             end
         end
         
         function allocateBuffer(obj)
+            obj.BufferPointer = repmat(libpointer, 1, numel(obj.Channels));
+            
             bufferLth = obj.NumSamplesPerRun;
             for channelId = uint8(obj.Channels)
-                [status, obj.BufferPtr(channelId+1)] = PicoScope4000a.setDataBuffer(...
+                [status, obj.BufferPointer(channelId+1)] = PicoScope4000a.setDataBuffer(...
                     obj.Handle, ...
                     channelId, ...
                     bufferLth, ...
                     obj.DEFAULT_SEGMENT_INDEX, ...
                     obj.DEFAULT_RATIO_MODE ...
                     );
-                assert(status == 0, 'Failure on allocateBuffer().')
+                assert(status == 0, 'Failure on allocateBuffer() with PICO_STATUS: %d.', status)
             end
         end
         
@@ -125,7 +125,7 @@ classdef PicoScopeRunBlock < matlab.System
                 obj.SampleRate, ...
                 obj.DEFAULT_SEGMENT_INDEX...
                 );
-            assert(status == 0, 'Failure on acquireData().')
+            assert(status == 0, 'Failure on acquireData() with PICO_STATUS: %d.', status)
         end
         
         function [noOfSamples, overflow] = fetchDataFromDevice(obj)
@@ -139,13 +139,13 @@ classdef PicoScopeRunBlock < matlab.System
                 obj.DEFAULT_RATIO_MODE, ...
                 obj.DEFAULT_SEGMENT_INDEX ...
                 );
-            assert(status == 0, 'Failure on fetchDataFromDevice().')
+            assert(status == 0, 'Failure on fetchDataFromDevice() with PICO_STATUS: %d.', status)
         end
         
         function data = unpackData(obj)
             data = zeros(obj.NumSamplesPerRun, numel(obj.Channels));
             for channelId = uint8(obj.Channels)
-                data(:, channelId+1) = obj.BufferPtr(channelId+1).Value;
+                data(:, channelId+1) = obj.BufferPointer(channelId+1).Value;
             end
         end
     end

@@ -1,11 +1,10 @@
 % Soeren Sofke, IBS
 % 2021-04-02
 
-close all;
-clear;
-
+function runBlockChannelAB()
 %%% Instantiate
 runBlock = PicoScopeRunBlock();
+cleanupRunBlock = onCleanup(@() tearDown(runBlock));
 
 %%% Set parameters
 runBlock.SampleRate = PICO_SAMPLE_RATE.FS_10MHZ;
@@ -19,7 +18,7 @@ runBlock.Channels = [...
 runBlock.setup();
 
 %%% Operate
-for blockIndex = 1:10
+for blockIndex = 1:3
     tic;
     data = runBlock();
     toc;
@@ -27,7 +26,13 @@ for blockIndex = 1:10
     plot(data(1:1e5, :))
     drawnow();
 end
+end
 
 %%% Teardown
+function tearDown(runBlock)
 runBlock.release();
-delete(runBlock)
+delete(runBlock);
+
+disp('Done!')
+end
+
